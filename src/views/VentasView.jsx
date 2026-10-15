@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import ProductCard from '../components/ventas/ProductCard';
 
-// Importación de las imágenes locales desde la carpeta assets
+// Importación de imágenes locales desde assets
 import imgCopaDuraznos from '../assets/copaDuraznos.jpg';
 import imgBandejaFrutas from '../assets/bandejaFrutas.jpg';
 import imgFresasCrema from '../assets/fresasConCrema.jpg';
 import imgCapuccino from '../assets/Capuccino.jpg';
 import imgFresasQueso from '../assets/fresasConCremaQueso.jpg';
 import imgCafeHuma from '../assets/cafeConHuma.jpg';
+import imgLupa from '../assets/lupa.png';
 
 const PRODUCTS_DATA = [
   { id: 1, name: "Copa Duraznos", category: "Ice cream", stock: "In stock", stockStatus: "green", desc: "Duraznos - Queso - Crema - Helado", price: 2.50, image: imgCopaDuraznos },
@@ -21,9 +22,8 @@ const PRODUCTS_DATA = [
 export default function VentasView() {
   const [selectedCategory, setSelectedCategory] = useState("Todos los productos");
   const [searchQuery, setSearchQuery] = useState("");
-  const [orderType, setOrderType] = useState("comer-aqui"); // 'comer-aqui' o 'para-llevar'
+  const [orderType, setOrderType] = useState("comer-aqui");
   
-  // Estado inicial del carrito con los elementos de tu diseño
   const [cart, setCart] = useState([
     { id: 1, name: "Copa Duraznos", desc: "Duraznos - Queso - Crema - Helado", price: 2.50, qty: 2 },
     { id: 3, name: "Fresas con crema", desc: "Frutillas - Crema", price: 1.75, qty: 1 },
@@ -76,36 +76,36 @@ export default function VentasView() {
   };
 
   return (
-    <div className="p-6 max-w-[1440px] mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <div className="p-6 max-w-[1440px] mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 font-montserrat">
       
-      {/* Columna Izquierda: Menú y Catálogo (8 columnas) */}
+      {/* Columna Izquierda: Menú y Catálogo */}
       <div className="lg:col-span-8 flex flex-col space-y-6">
         
-        {/* Encabezado */}
         <div className="flex justify-between items-end">
           <div>
             <h1 className="text-3xl font-bold text-gray-950">Ventas</h1>
             <p className="text-gray-500 text-sm mt-1">Crea una orden y mándala directo a la cocina.</p>
           </div>
           <button className="flex items-center space-x-2 bg-white border border-gray-200 px-4 py-2 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-2xs cursor-pointer">
-            <span>📄 Órdenes Recientes</span>
+            <span> Órdenes Recientes</span>
           </button>
         </div>
 
-        {/* Buscador */}
+        
         <div className="relative">
-          <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">🔍</span>
+          <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+            <img src={imgLupa} alt="Buscar" className="w-4 h-4 object-contain opacity-50" />
+          </span>
           <input 
             type="text" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar producto" 
-            className="w-full pl-11 pr-12 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#5C4033] shadow-2xs"
+            className="w-full pl-11 pr-12 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#5C4033] shadow-2xs font-montserrat"
           />
           <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-xs font-mono text-gray-400 bg-gray-100 px-2 my-2 rounded-md">⌘ K</span>
         </div>
 
-        {/* Filtros de Categorías */}
         <div className="flex space-x-3 overflow-x-auto pb-2">
           {["Todos los productos", "Ice cream", "Frutas", "Bebidas"].map((cat) => (
             <button
@@ -122,7 +122,6 @@ export default function VentasView() {
           ))}
         </div>
 
-        {/* Retícula de Productos */}
         <div>
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-semibold text-gray-800">Menú</h3>
@@ -138,17 +137,15 @@ export default function VentasView() {
 
       </div>
 
-      {/* Columna Derecha: Orden Actual / Carrito (4 columnas) */}
+      {/* Columna Derecha: Orden Actual / Carrito */}
       <div className="lg:col-span-4 bg-white border border-gray-200 rounded-3xl p-6 flex flex-col justify-between shadow-2xs">
         
         <div>
-          {/* Cabecera del ticket */}
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-gray-900">Orden Actual</h2>
             <span className="text-xs font-mono font-bold bg-gray-100 text-gray-600 px-2.5 py-1 rounded-lg">#1048</span>
           </div>
 
-          {/* Selector de consumo */}
           <div className="grid grid-cols-2 bg-gray-100 p-1 rounded-xl mb-6">
             <button 
               onClick={() => setOrderType("comer-aqui")}
@@ -170,7 +167,6 @@ export default function VentasView() {
 
           <p className="text-xs text-gray-400 font-medium mb-4">{cart.length} products - {totalItems} items</p>
 
-          {/* Lista de productos en el carrito */}
           <div className="space-y-4 max-h-[320px] overflow-y-auto pr-1">
             {cart.map((item) => (
               <div key={item.id} className="p-3 bg-gray-50 border border-gray-100 rounded-2xl relative group">
@@ -195,19 +191,17 @@ export default function VentasView() {
             ))}
           </div>
 
-          {/* Nota para la cocina */}
           <div className="mt-4">
             <input 
               type="text"
               placeholder="📝 Añadir una nota para la cocina"
               value={kitchenNote}
               onChange={(e) => setKitchenNote(e.target.value)}
-              className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 px-3 py-2.5 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#5C4033]"
+              className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 px-3 py-2.5 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#5C4033] font-montserrat"
             />
           </div>
         </div>
 
-        {/* Totales y Botón de Confirmación */}
         <div className="pt-6 border-t border-gray-100 mt-6 space-y-3">
           <div className="flex justify-between text-sm text-gray-500">
             <span>Subtotal</span>
