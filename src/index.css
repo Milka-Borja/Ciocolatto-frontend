@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .font-pacifico {
+    font-family: 'Pacifico', cursive;
+  }
+}
+
+body {
+  background-color: #FDFBF7;
+  color: #2D231E;
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
