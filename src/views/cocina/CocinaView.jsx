@@ -74,7 +74,7 @@ export default function CocinaView() {
     }
   ]);
 
-  // Función para cambiar el estado de la orden (flujo del Kanban)
+  // Función para cambiar el estado de la orden 
   const handleMoveOrder = (id, nextStatus) => {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status: nextStatus } : o));
   };
