@@ -1,16 +1,22 @@
 import React, { useState } from 'react';
+// Asegúrate de que las rutas a los componentes sean correctas según tu estructura
 import InventarioTab from '../../components/admin/InventarioTab';
 import UsuariosTab from '../../components/admin/UsuariosTab';
+import ReportesTab from '../../components/admin/ReportesTab';
+// Si tienes PrediccionTab, impórtalo aquí. Si no, comenta la siguiente línea:
+import PrediccionTab from '../../components/admin/PrediccionTab';
 
 export default function AdminView() {
   const [activeAdminTab, setActiveAdminTab] = useState('inventario');
 
   return (
     <div className="p-6 max-w-[1440px] mx-auto w-full space-y-6 font-montserrat">
+      
       {/* Encabezado del Panel */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-3xl border border-gray-200 shadow-2xs">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Panel Administrativo</h1>
+          <p className="text-gray-500 text-sm">Gestión integral de inventario, ventas y modelo predictivo de demanda.</p>
         </div>
         
         {/* Pestañas de navegación interna */}
@@ -21,7 +27,7 @@ export default function AdminView() {
               activeAdminTab === 'inventario' ? 'bg-white text-gray-900 shadow-2xs' : 'text-gray-500 hover:text-gray-900'
             }`}
           >
-            Inventario y Productos
+             Inventario y Productos
           </button>
           <button 
             onClick={() => setActiveAdminTab('usuarios')}
@@ -29,7 +35,7 @@ export default function AdminView() {
               activeAdminTab === 'usuarios' ? 'bg-white text-gray-900 shadow-2xs' : 'text-gray-500 hover:text-gray-900'
             }`}
           >
-            Usuarios y Roles
+             Usuarios y Roles
           </button>
           <button 
             onClick={() => setActiveAdminTab('reportes')}
@@ -37,7 +43,7 @@ export default function AdminView() {
               activeAdminTab === 'reportes' ? 'bg-white text-gray-900 shadow-2xs' : 'text-gray-500 hover:text-gray-900'
             }`}
           >
-            Historial y Reportes
+             Historial y Reportes
           </button>
           <button 
             onClick={() => setActiveAdminTab('prediccion')}
@@ -45,7 +51,7 @@ export default function AdminView() {
               activeAdminTab === 'prediccion' ? 'bg-white text-gray-900 shadow-2xs' : 'text-gray-500 hover:text-gray-900'
             }`}
           >
-            Predicción de Demanda
+             Predicción de Demanda
           </button>
         </div>
       </div>
@@ -54,20 +60,19 @@ export default function AdminView() {
       <div className="bg-white rounded-3xl border border-gray-200 p-6 shadow-2xs">
         {activeAdminTab === 'inventario' && <InventarioTab />}
         {activeAdminTab === 'usuarios' && <UsuariosTab />}
-        {activeAdminTab === 'reportes' && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-900">Historial de Ventas y Descarga de Reportes</h2>
-            <p className="text-gray-500 text-sm">Consulte las transacciones pasadas y descargue los reportes de ventas consolidados.</p>
-            
-          </div>
-        )}
+        {activeAdminTab === 'reportes' && <ReportesTab />}
         {activeAdminTab === 'prediccion' && (
+          // Si tienes el componente PrediccionTab, cámbialo a: <PrediccionTab />
           <div className="space-y-4">
             <h2 className="text-lg font-bold text-gray-900">Modelo de Predicción de Demanda</h2>
             <p className="text-gray-500 text-sm">Visualización gráfica del comportamiento futuro estimado de los productos basado en el histórico de ventas.</p>
+            <div className="p-16 border-2 border-dashed border-gray-200 rounded-2xl text-center text-gray-400">
+              [Gráfica analítica del modelo predictivo e indicadores de error en desarrollo para el Sprint 4]
+            </div>
           </div>
         )}
       </div>
+      
     </div>
   );
 }

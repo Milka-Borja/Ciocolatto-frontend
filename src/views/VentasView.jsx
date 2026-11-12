@@ -68,7 +68,7 @@ export default function VentasView() {
   const [cart, setCart] = useState([]);
   const [kitchenNote, setKitchenNote] = useState("");
 
-  // Extras opcionales
+  // Extras opcionales (incluirá el empaque automático de $0.50 si es para llevar)
   const [extrasList, setExtrasList] = useState([]);
   const [mostrarFormExtra, setMostrarFormExtra] = useState(false);
   const [nuevoExtraNombre, setNuevoExtraNombre] = useState('');
@@ -101,7 +101,7 @@ export default function VentasView() {
 
   // 2. Conexión WebSocket para sincronización en tiempo real con Cocina
   useEffect(() => {
-    const token = sessionStorage.getItem('token') 
+    const token = sessionStorage.getItem('token') || localStorage.getItem('token');
 
     const socket = io(socketHost, {
       auth: { token },
@@ -111,16 +111,15 @@ export default function VentasView() {
     });
 
     socket.on('connect', () => {
-      console.log(' Socket conectado en Caja/Ventas con ID:', socket.id);
+      console.log('✅ Socket conectado en Caja/Ventas con ID:', socket.id);
     });
 
     socket.on('connect_error', (err) => {
-      console.warn('Error de conexión Socket en Ventas:', err.message);
+      console.warn('⚠️ Error de conexión Socket en Ventas:', err.message);
     });
 
-    // Escuchar cuando Cocina actualiza el estado de una comanda
     socket.on('ticket_actualizado', (data) => {
-      console.log('[Caja] Evento ticket_actualizado recibido:', data);
+      console.log('📩 [Caja] Evento ticket_actualizado recibido:', data);
 
       if (!data) return;
 
@@ -130,22 +129,16 @@ export default function VentasView() {
 
       if (!estadoActualizado) return;
 
-      // Actualizar tarjeta del último pedido en pantalla
       setUltimoPedido((prev) => {
         if (!prev) return prev;
-
         const coincide =
           (pedidoIdRecibido && Number(prev.id) === pedidoIdRecibido) ||
           (ticketIdRecibido && Number(prev.ticket_id) === ticketIdRecibido) ||
           (Number(prev.id) === ticketIdRecibido);
 
-        if (coincide) {
-          return { ...prev, estado: estadoActualizado };
-        }
-        return prev;
+        return coincide ? { ...prev, estado: estadoActualizado } : prev;
       });
 
-      // Actualizar la lista en el modal de órdenes recientes
       setOrdenesRecientes((prevList) =>
         prevList.map((ord) => {
           const match =
@@ -163,8 +156,30 @@ export default function VentasView() {
     };
   }, []);
 
+  // 3. NUEVA LÓGICA: Recargo automático de $0.50 al seleccionar "Para llevar"
+  const handleOrderTypeChange = (type) => {
+    setOrderType(type);
+    if (type === "para-llevar") {
+      // Añadir el recargo de empaque si no está agregado
+      if (!extrasList.find(e => e.id === 'empaque-llevar')) {
+        setExtrasList(prev => [
+          ...prev, 
+          { id: 'empaque-llevar', nombre: 'Tarrina / Empaque (Para llevar)', precio: 0.50 }
+        ]);
+      }
+    } else {
+      // Retirar el recargo si cambia a comer aquí
+      setExtrasList(prev => prev.filter(e => e.id !== 'empaque-llevar'));
+    }
+  };
+
   // Manejo de Carrito
   const handleAddToCart = (product) => {
+    if (!product.disponible) {
+      alert("Este producto se encuentra agotado temporalmente.");
+      return;
+    }
+
     setCart((prevCart) => {
       const existingItem = prevCart.find((item) => item.producto_id === product.id);
       if (existingItem) {
@@ -212,7 +227,7 @@ export default function VentasView() {
     setCart((prevCart) => prevCart.filter((item) => item.producto_id !== producto_id));
   };
 
-  // Manejo de Extras Adicionales
+  // Manejo de Extras Adicionales Manuales
   const handleAgregarExtra = (e) => {
     e.preventDefault();
     if (!nuevoExtraNombre.trim()) {
@@ -270,23 +285,25 @@ export default function VentasView() {
   const totalGeneral = subtotalProductos + totalExtras;
   const totalItems = cart.reduce((acc, item) => acc + item.cantidad, 0);
 
-  // 3. Confirmar Pedido y mandarlo a Cocina: POST /api/pedidos
+  // Confirmar Pedido a Cocina: POST /api/pedidos
   const handleSendToKitchen = async () => {
     if (cart.length === 0) {
       alert("La orden está vacía. Añade al menos un producto.");
       return;
     }
-
+    
     setEnviando(true);
-
+    const tieneExtras = extrasList.length > 0;
+    
     const payload = {
       items: cart.map((item) => ({
-        producto_id: item.producto_id,
-        cantidad: item.cantidad,
-        notas: item.notas || '',
+        producto_id: item.producto_id || item.id,
+        cantidad: item.cantidad || item.qty,
+        notas: item.notas || ''
       })),
-      total_extras: parseFloat(totalExtras.toFixed(2)),
-      descripcion_extras: descripcionExtras || (orderType === 'para-llevar' ? 'Para llevar' : 'Sin extras'),
+      extras: tieneExtras,
+      total_extras: tieneExtras ? parseFloat(totalExtras.toFixed(2)) : 0,
+      descripcion_extras: tieneExtras ? descripcionExtras : "",
       tipo_pago: tipoPago,
       notas: `${orderType === 'comer-aqui' ? '[Comer aquí]' : '[Para llevar]'} ${kitchenNote}`.trim(),
     };
@@ -294,29 +311,29 @@ export default function VentasView() {
     try {
       const response = await pedidoService.crearPedido(payload);
       
-      const nuevoPedido = {
+      const pedidoGuardado = {
         id: response.id,
         estado: 'pendiente',
         total: totalGeneral,
         tipo: orderType,
         itemsCount: totalItems,
       };
-      setUltimoPedido(nuevoPedido);
-      setOrdenesRecientes((prev) => [nuevoPedido, ...prev]);
-
+      
+      setUltimoPedido(pedidoGuardado);
       setCart([]);
       setExtrasList([]);
       setKitchenNote('');
+      setOrderType('comer-aqui'); // Restablecer a comer aquí tras enviar
+      
     } catch (error) {
       console.error('Error al registrar pedido:', error.response?.data);
-      const msg = error.response?.data?.error || error.response?.data?.mensaje || 'Error al conectar con la API de pedidos.';
-      alert(msg);
+      alert('Error al conectar con la API de pedidos.');
     } finally {
       setEnviando(false);
     }
   };
 
-  // 4. Consultar Órdenes Recientes cruzando con el endpoint de TICKETS
+  // Consultar Órdenes Recientes cruzando con el endpoint de TICKETS
   const handleAbrirOrdenesRecientes = async () => {
     setModalOrdenesOpen(true);
     setCargandoOrdenes(true);
@@ -329,7 +346,6 @@ export default function VentasView() {
         return;
       }
 
-      // Consultar pedidos y tickets en paralelo
       const [pedidosData, ticketsActivos, ticketsDespachados] = await Promise.all([
         pedidoService.obtenerPedidosPorUsuario(userId).catch(() => []),
         ticketService.obtenerTicketsActivos().catch(() => []),
@@ -341,7 +357,6 @@ export default function VentasView() {
         ...(Array.isArray(ticketsDespachados) ? ticketsDespachados : [])
       ];
 
-      // Cruzar el pedido con el estado de su ticket correspondiente
       const pedidosConEstadoReal = (Array.isArray(pedidosData) ? pedidosData : []).map((ped) => {
         const ticketAsociado = todosLosTickets.find(
           (t) => Number(t.pedido_id) === Number(ped.id)
@@ -356,7 +371,6 @@ export default function VentasView() {
 
       setOrdenesRecientes(pedidosConEstadoReal);
 
-      // Si existe un último pedido registrado en la vista, actualizar también su estado
       setUltimoPedido((prev) => {
         if (!prev) return prev;
         const ticketDelUltimo = todosLosTickets.find(
@@ -436,7 +450,7 @@ export default function VentasView() {
                   : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
               }`}
             >
-              {cat === "Temporada" ? "Temporada" : cat}
+              {cat === "Temporada" ? " Temporada" : cat}
             </button>
           ))}
         </div>
@@ -482,10 +496,10 @@ export default function VentasView() {
             </span>
           </div>
 
-          {/* Selector de consumo */}
+          {/* Selector de consumo (Conectado a la regla del recargo de $0.50) */}
           <div className="grid grid-cols-2 bg-gray-100 p-1 rounded-xl mb-4">
             <button
-              onClick={() => setOrderType("comer-aqui")}
+              onClick={() => handleOrderTypeChange("comer-aqui")}
               className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                 orderType === "comer-aqui" ? "bg-white text-gray-900 shadow-2xs" : "text-gray-500 hover:text-gray-800"
               }`}
@@ -493,12 +507,12 @@ export default function VentasView() {
               Comer aquí
             </button>
             <button
-              onClick={() => setOrderType("para-llevar")}
+              onClick={() => handleOrderTypeChange("para-llevar")}
               className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                 orderType === "para-llevar" ? "bg-white text-gray-900 shadow-2xs" : "text-gray-500 hover:text-gray-800"
               }`}
             >
-              Para llevar
+              Para llevar (+ $0.50)
             </button>
           </div>
 
@@ -620,13 +634,15 @@ export default function VentasView() {
                     <span className="text-amber-950 font-medium"> {extra.nombre}</span>
                     <div className="flex items-center space-x-2">
                       <span className="font-bold text-amber-900">+${extra.precio.toFixed(2)}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleEliminarExtra(extra.id)}
-                        className="text-gray-400 hover:text-red-500 font-bold ml-1 cursor-pointer"
-                      >
-                        ×
-                      </button>
+                      {extra.id !== 'empaque-llevar' && (
+                        <button
+                          type="button"
+                          onClick={() => handleEliminarExtra(extra.id)}
+                          className="text-gray-400 hover:text-red-500 font-bold ml-1 cursor-pointer"
+                        >
+                          ×
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -706,7 +722,6 @@ export default function VentasView() {
                       </span>
                     </div>
 
-                    {/* Barra de progreso con el estado real obtenido del ticket */}
                     <OrderProgressBar estado={ped.estado} />
 
                     <div className="text-xs text-gray-600">

@@ -27,18 +27,29 @@ export const authService = {
   },
 
   // 3.-Listar_Usuarios: GET /usuarios
-  obtenerUsuarios: async () => {
-    const response = await api.get('/usuarios');
+  obtenerUsuarios: async (filtro = 'activos') => {
+    let url = '/usuarios';
+    if (filtro === 'activos') url = '/usuarios?soloActivos=true';
+    else if (filtro === 'inactivos') url = '/usuarios?soloInactivos=true';
+    else if (filtro === 'eliminados') url = '/usuarios?soloEliminados=true';
+
+    const response = await api.get(url);
     return response.data;
   },
 
-  // 4.-Actualizar_Usuario: PUT /usuarios/:id
+  // NUEVO: Cambiar Estado Operativo (Vacaciones / Suspensión) - PATCH
+  actualizarEstadoOperativo: async (id, activo) => {
+    const response = await api.patch(`/usuarios/${id}/estado`, { activo });
+    return response.data;
+  },
+
+  // Actualización General (Nombre, Email, Password) - PUT
   actualizarUsuario: async (id, datos) => {
     const response = await api.put(`/usuarios/${id}`, datos);
     return response.data;
   },
 
-  // 5.-Eliminar_Usuario: DELETE /usuarios/:id (Desactivación lógica)
+  // Baja Definitiva (Soft Delete) - DELETE
   eliminarUsuario: async (id) => {
     const response = await api.delete(`/usuarios/${id}`);
     return response.data;

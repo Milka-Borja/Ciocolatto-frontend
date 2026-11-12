@@ -27,6 +27,24 @@ export const pedidoService = {
     } catch {
       return [];
     }
+  },
+  // GET /api/pedidos (Endpoint exclusivo para Admin)
+  obtenerHistorialPedidos: async (fechaInicio = '', fechaFin = '', soloExtras = false) => {
+    try {
+      // Construir los query params
+      const params = new URLSearchParams();
+      if (fechaInicio) params.append('fechaInicio', fechaInicio);
+      if (fechaFin) params.append('fechaFin', fechaFin);
+      if (soloExtras) params.append('soloExtras', 'true');
+      
+      const url = `/pedidos?${params.toString()}`;
+      const response = await api.get(url);
+      
+      return response.data;
+    } catch (error) {
+      console.error("Error al obtener el historial general:", error);
+      throw error;
+    }
   }
 };
 
