@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { ticketService } from '../../services/ticketService';
 import { productoService } from '../../services/productoService';
+import { incidenciaService } from '../../services/incidenciaService';
 
 // Detecta automáticamente la URL del backend sin quemar dominios en duro
 const socketHost =
@@ -24,6 +25,20 @@ export default function CocinaView() {
   const [productos, setProductos] = useState([]);
   const [cargandoStock, setCargandoStock] = useState(false);
 
+  // Estados para Modal de Incidencias
+  const [modalIncidenciaOpen, setModalIncidenciaOpen] = useState(false);
+  const [descripcionIncidencia, setDescripcionIncidencia] = useState('');
+  const [enviandoIncidencia, setEnviandoIncidencia] = useState(false);
+
+  // Estados para Alertas Personalizadas (Ventana flotante centrada)
+  const [toast, setToast] = useState({ open: false, message: '', type: 'success' });
+
+  // Función para mostrar la alerta flotante
+  const showToast = (message, type = 'success') => {
+    setToast({ open: true, message, type });
+    setTimeout(() => setToast({ open: false, message: '', type: 'success' }), 4000);
+  };
+
   // 1. Cargar tickets activos iniciales vía HTTP REST
   const cargarTicketsActivos = async () => {
     try {
@@ -36,11 +51,11 @@ export default function CocinaView() {
     }
   };
 
-  // 2. Conexión WebSocket con handshake por polling primero (Evita el fallo en Azure)
+  // 2. Conexión WebSocket con handshake por polling primero
   useEffect(() => {
     cargarTicketsActivos();
 
-    const token = sessionStorage.getItem('token') 
+    const token = sessionStorage.getItem('token') || localStorage.getItem('token');
 
     const socket = io(socketHost, {
       auth: { token },
@@ -124,7 +139,7 @@ export default function CocinaView() {
       await ticketService.cambiarEstado(ticketIdNum, nuevoEstado);
     } catch (err) {
       console.error('Error al actualizar estado en el servidor:', err);
-      alert('No se pudo actualizar el estado de la comanda en el servidor.');
+      showToast('No se pudo actualizar el estado de la comanda en el servidor.', 'error');
     }
   };
 
@@ -164,8 +179,29 @@ export default function CocinaView() {
         prev.map((p) => (p.id === prod.id ? { ...p, disponible: nuevoEstado } : p))
       );
     } catch (err) {
-      alert('Error al actualizar disponibilidad.');
       console.error(err);
+      showToast('Error al actualizar disponibilidad.', 'error');
+    }
+  };
+
+  // 6. Reportar Incidencia
+  const handleReportarIncidencia = async () => {
+    if (!descripcionIncidencia.trim()) {
+      showToast('Por favor, describe la incidencia antes de enviar.', 'warning');
+      return;
+    }
+
+    setEnviandoIncidencia(true);
+    try {
+      await incidenciaService.reportar(descripcionIncidencia);
+      showToast('Incidencia reportada correctamente al administrador.', 'success');
+      setDescripcionIncidencia('');
+      setModalIncidenciaOpen(false);
+    } catch (error) {
+      console.error('Error al reportar incidencia:', error);
+      showToast('Hubo un error al enviar el reporte.', 'error');
+    } finally {
+      setEnviandoIncidencia(false);
     }
   };
 
@@ -179,7 +215,24 @@ export default function CocinaView() {
   const listos = tickets.filter((t) => t.estado === 'listo');
 
   return (
-    <div className="p-8 max-w-[1550px] mx-auto w-full space-y-6 font-montserrat">
+    <div className="p-8 max-w-[1550px] mx-auto w-full space-y-6 font-montserrat relative">
+      
+      {/* Alerta flotante centrada en pantalla */}
+      {toast.open && (
+        <div className="fixed top-12 left-1/2 transform -translate-x-1/2 z-[100] transition-all">
+          <div className={`px-8 py-4 rounded-2xl shadow-2xl border font-bold text-sm text-center flex items-center gap-3 ${
+            toast.type === 'error' ? 'bg-red-50 text-red-700 border-red-200' :
+            toast.type === 'warning' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+            'bg-emerald-50 text-emerald-700 border-emerald-200'
+          }`}>
+            <span className="text-xl">
+              {toast.type === 'error' ? '❌' : toast.type === 'warning' ? '⚠️' : '✅'}
+            </span>
+            {toast.message}
+          </div>
+        </div>
+      )}
+
       {/* Cabecera */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -189,7 +242,13 @@ export default function CocinaView() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <button 
+            onClick={() => setModalIncidenciaOpen(true)}
+            className="flex items-center space-x-2 bg-white border border-gray-200 px-4 py-2.5 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 shadow-2xs cursor-pointer transition-colors"
+          >
+            <span>⚠️ Reportar Incidente</span>
+          </button>
           <button
             onClick={handleAbrirDespachados}
             className="flex items-center space-x-2 bg-white border border-gray-200 px-4 py-2.5 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 shadow-2xs cursor-pointer"
@@ -588,6 +647,53 @@ export default function CocinaView() {
                   </div>
                 ))
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Reportar Incidencia */}
+      {modalIncidenciaOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-xl border border-gray-200 space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900">Reportar Incidente en Cocina</h3>
+              <button
+                onClick={() => setModalIncidenciaOpen(false)}
+                className="text-gray-400 hover:text-gray-700 text-lg font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-500">
+              Describe el problema (ej. faltante de insumos, rotura de vajilla, fallas en equipos) para que quede registrado y el administrador sea notificado.
+            </p>
+
+            <textarea
+              className="w-full border border-gray-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none resize-none"
+              rows="4"
+              placeholder="Ej: Se rompieron 3 copas de vidrio grandes durante el lavado..."
+              value={descripcionIncidencia}
+              onChange={(e) => setDescripcionIncidencia(e.target.value)}
+              disabled={enviandoIncidencia}
+            ></textarea>
+
+            <div className="flex justify-end space-x-3 pt-2">
+              <button
+                onClick={() => setModalIncidenciaOpen(false)}
+                className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-bold cursor-pointer transition-colors"
+                disabled={enviandoIncidencia}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleReportarIncidencia}
+                className="px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-xl text-sm font-bold shadow-sm cursor-pointer transition-colors disabled:opacity-50"
+                disabled={enviandoIncidencia}
+              >
+                {enviandoIncidencia ? 'Enviando...' : 'Enviar Reporte'}
+              </button>
             </div>
           </div>
         </div>

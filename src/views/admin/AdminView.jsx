@@ -1,78 +1,76 @@
 import React, { useState } from 'react';
-// Asegúrate de que las rutas a los componentes sean correctas según tu estructura
 import InventarioTab from '../../components/admin/InventarioTab';
 import UsuariosTab from '../../components/admin/UsuariosTab';
 import ReportesTab from '../../components/admin/ReportesTab';
-// Si tienes PrediccionTab, impórtalo aquí. Si no, comenta la siguiente línea:
-import PrediccionTab from '../../components/admin/PrediccionTab';
+import AnalisisTab from '../../components/admin/AnalisisTab';
+import IncidenciasTab from '../../components/admin/IncidenciasTab'; 
 
 export default function AdminView() {
   const [activeAdminTab, setActiveAdminTab] = useState('inventario');
 
   return (
-    <div className="p-6 max-w-[1440px] mx-auto w-full space-y-6 font-montserrat">
+    <div className="min-h-screen bg-gray-50 font-montserrat flex flex-col">
       
-      {/* Encabezado del Panel */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-3xl border border-gray-200 shadow-2xs">
+      <header className="bg-white border-b border-gray-200 px-6 py-6 md:px-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 shadow-sm">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Panel Administrativo</h1>
-          <p className="text-gray-500 text-sm">Gestión integral de inventario, ventas y modelo predictivo de demanda.</p>
+          <h1 className="text-2xl font-extrabold text-[#003366]">Panel Administrativo</h1>
+          <p className="text-[#333333] text-sm mt-1">Gestión integral de inventario, auditoría de ventas y análisis predictivo.</p>
         </div>
         
-        {/* Pestañas de navegación interna */}
-        <div className="flex bg-gray-100 p-1.5 rounded-xl space-x-1 overflow-x-auto">
+        <nav className="flex bg-[#F8F9FA] p-1.5 rounded-2xl space-x-1 overflow-x-auto border border-gray-100">
           <button 
             onClick={() => setActiveAdminTab('inventario')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-              activeAdminTab === 'inventario' ? 'bg-white text-gray-900 shadow-2xs' : 'text-gray-500 hover:text-gray-900'
+            className={`px-5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+              activeAdminTab === 'inventario' ? 'bg-[#003366] text-white shadow-sm' : 'text-[#333333] hover:text-[#003366] hover:bg-gray-200/50'
             }`}
           >
-             Inventario y Productos
+            Inventario
           </button>
           <button 
             onClick={() => setActiveAdminTab('usuarios')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-              activeAdminTab === 'usuarios' ? 'bg-white text-gray-900 shadow-2xs' : 'text-gray-500 hover:text-gray-900'
+            className={`px-5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+              activeAdminTab === 'usuarios' ? 'bg-[#003366] text-white shadow-sm' : 'text-[#333333] hover:text-[#003366] hover:bg-gray-200/50'
             }`}
           >
-             Usuarios y Roles
+            Usuarios
           </button>
           <button 
             onClick={() => setActiveAdminTab('reportes')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-              activeAdminTab === 'reportes' ? 'bg-white text-gray-900 shadow-2xs' : 'text-gray-500 hover:text-gray-900'
+            className={`px-5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+              activeAdminTab === 'reportes' ? 'bg-[#003366] text-white shadow-sm' : 'text-[#333333] hover:text-[#003366] hover:bg-gray-200/50'
             }`}
           >
-             Historial y Reportes
+            Historial de Ventas
           </button>
           <button 
-            onClick={() => setActiveAdminTab('prediccion')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-              activeAdminTab === 'prediccion' ? 'bg-white text-gray-900 shadow-2xs' : 'text-gray-500 hover:text-gray-900'
+            onClick={() => setActiveAdminTab('analisis')}
+            className={`px-5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+              activeAdminTab === 'analisis' ? 'bg-[#003366] text-white shadow-sm' : 'text-[#333333] hover:text-[#003366] hover:bg-gray-200/50'
             }`}
           >
-             Predicción de Demanda
+            Análisis
           </button>
-        </div>
-      </div>
+          
+          <button 
+            onClick={() => setActiveAdminTab('incidencias')}
+            className={`px-5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+              activeAdminTab === 'incidencias' ? 'bg-[#003366] text-white shadow-sm' : 'text-[#333333] hover:text-[#003366] hover:bg-gray-200/50'
+            }`}
+          >
+            Incidencias
+          </button>
+        </nav>
+      </header>
 
-      {/* Renderizado dinámico del tab activo */}
-      <div className="bg-white rounded-3xl border border-gray-200 p-6 shadow-2xs">
-        {activeAdminTab === 'inventario' && <InventarioTab />}
-        {activeAdminTab === 'usuarios' && <UsuariosTab />}
-        {activeAdminTab === 'reportes' && <ReportesTab />}
-        {activeAdminTab === 'prediccion' && (
-          // Si tienes el componente PrediccionTab, cámbialo a: <PrediccionTab />
-          <div className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-900">Modelo de Predicción de Demanda</h2>
-            <p className="text-gray-500 text-sm">Visualización gráfica del comportamiento futuro estimado de los productos basado en el histórico de ventas.</p>
-            <div className="p-16 border-2 border-dashed border-gray-200 rounded-2xl text-center text-gray-400">
-              [Gráfica analítica del modelo predictivo e indicadores de error en desarrollo para el Sprint 4]
-            </div>
-          </div>
-        )}
-      </div>
-      
+      <main className="flex-1 p-6 md:p-10 max-w-[1600px] w-full mx-auto">
+        <div className="bg-white border border-gray-200 rounded-[2rem] p-6 md:p-8 shadow-sm min-h-[500px]">
+          {activeAdminTab === 'inventario' && <InventarioTab />}
+          {activeAdminTab === 'usuarios' && <UsuariosTab />}
+          {activeAdminTab === 'reportes' && <ReportesTab />}
+          {activeAdminTab === 'analisis' && <AnalisisTab />}
+          {activeAdminTab === 'incidencias' && <IncidenciasTab />}
+        </div>
+      </main>
     </div>
   );
 }

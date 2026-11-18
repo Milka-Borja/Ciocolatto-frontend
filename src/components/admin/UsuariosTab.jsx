@@ -12,6 +12,10 @@ export default function UsuariosTab() {
   // Pestañas: 'activos', 'inactivos', 'eliminados'
   const [pestanaActiva, setPestanaActiva] = useState('activos');
 
+
+  const [alerta, setAlerta] = useState({ mostrar: false, mensaje: '', tipo: 'success' });
+  const [confirmDialog, setConfirmDialog] = useState({ mostrar: false, mensaje: '', accionConfirmar: null });
+
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
@@ -26,7 +30,6 @@ export default function UsuariosTab() {
   const cargarUsuarios = async () => {
     try {
       setCargando(true);
-      // Le pasamos la pestaña activa directo al servicio, el backend filtra
       const data = await authService.obtenerUsuarios(pestanaActiva);
       setUsuarios(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -35,6 +38,11 @@ export default function UsuariosTab() {
     } finally {
       setCargando(false);
     }
+  };
+
+  const mostrarAlerta = (mensaje, tipo = 'success') => {
+    setAlerta({ mostrar: true, mensaje, tipo });
+    setTimeout(() => setAlerta({ mostrar: false, mensaje: '', tipo: 'success' }), 3500);
   };
 
   const handleInputChange = (e) => {
@@ -85,7 +93,7 @@ export default function UsuariosTab() {
         if (formData.password) updatePayload.password = formData.password;
         
         await authService.actualizarUsuario(editingId, updatePayload);
-        alert('¡Usuario actualizado exitosamente!');
+        mostrarAlerta('¡Usuario actualizado exitosamente!');
       } else {
         await authService.registro({
           nombre: formData.nombre.trim(),
@@ -93,7 +101,7 @@ export default function UsuariosTab() {
           password: formData.password,
           rol: formData.rol,
         });
-        alert('¡Usuario registrado exitosamente!');
+        mostrarAlerta('¡Usuario registrado exitosamente!');
       }
 
       await cargarUsuarios();
@@ -107,37 +115,54 @@ export default function UsuariosTab() {
     }
   };
 
-  // Usamos el nuevo PATCH que definió Lubswer
-  const toggleEstadoOperativo = async (id, estadoActual) => {
-    const accion = estadoActual ? 'suspender (poner en pausa)' : 'reintegrar';
-    if (!window.confirm(`¿Estás seguro de ${accion} a este usuario?`)) return;
 
-    try {
-      await authService.actualizarEstadoOperativo(id, !estadoActual);
-      alert('Estado operativo actualizado correctamente.');
-      cargarUsuarios();
-    } catch (error) {
-      console.error('Error al cambiar el estado operativo:', error);
-      alert('Hubo un error al intentar cambiar el estado del usuario.');
-    }
+  const toggleEstadoOperativo = (id, estadoActual) => {
+    const accion = estadoActual ? 'suspender (poner en pausa)' : 'reintegrar';
+    setConfirmDialog({
+      mostrar: true,
+      mensaje: `¿Estás seguro de ${accion} a este usuario?`,
+      accionConfirmar: async () => {
+        setConfirmDialog({ mostrar: false, mensaje: '', accionConfirmar: null });
+        try {
+          await authService.actualizarEstadoOperativo(id, !estadoActual);
+          mostrarAlerta('Estado operativo actualizado correctamente.');
+          cargarUsuarios();
+        } catch (error) {
+          console.error('Error al cambiar el estado operativo:', error);
+          mostrarAlerta('Hubo un error al intentar cambiar el estado del usuario.', 'error');
+        }
+      }
+    });
   };
 
-  // Usamos el DELETE para la baja definitiva
-  const darDeBajaUsuario = async (id, nombre) => {
-    if (!window.confirm(`⚠️ ¿Estás seguro de dar de baja definitiva a ${nombre}? Pasará a la papelera.`)) return;
 
-    try {
-      await authService.eliminarUsuario(id);
-      alert('Usuario dado de baja correctamente.');
-      cargarUsuarios();
-    } catch (error) {
-      console.error('Error al dar de baja:', error);
-      alert('Hubo un error al intentar dar de baja al usuario.');
-    }
+  const darDeBajaUsuario = (id, nombre) => {
+    setConfirmDialog({
+      mostrar: true,
+      mensaje: `⚠️ ¿Estás seguro de dar de baja definitiva a ${nombre}? Pasará a la papelera.`,
+      accionConfirmar: async () => {
+        setConfirmDialog({ mostrar: false, mensaje: '', accionConfirmar: null });
+        try {
+          await authService.eliminarUsuario(id);
+          mostrarAlerta('Usuario dado de baja correctamente.');
+          cargarUsuarios();
+        } catch (error) {
+          console.error('Error al dar de baja:', error);
+          mostrarAlerta('Hubo un error al intentar dar de baja al usuario.', 'error');
+        }
+      }
+    });
   };
 
   return (
-    <div className="space-y-4 font-montserrat">
+    <div className="space-y-4 font-montserrat relative">
+      {/* Toast Notificación */}
+      {alerta.mostrar && (
+        <div className={`fixed top-6 right-6 z-50 px-6 py-3 rounded-xl shadow-lg border text-sm font-bold animate-fade-in-down ${alerta.tipo === 'error' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+          {alerta.mensaje}
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-lg font-bold text-[#003366]">Gestión de Cuentas y Roles</h2>
@@ -154,13 +179,14 @@ export default function UsuariosTab() {
           >
             Usuarios Activos
           </button>
+          
           <button
             onClick={() => setPestanaActiva('inactivos')}
             className={`px-3 py-2 rounded-lg font-medium transition-all cursor-pointer ${
               pestanaActiva === 'inactivos' ? 'bg-[#003366] shadow-2xs text-white font-bold' : 'text-[#333333] hover:text-[#003366]'
             }`}
           >
-            En Pausa / Vacaciones
+            En pausa
           </button>
           <button
             onClick={() => setPestanaActiva('eliminados')}
@@ -168,11 +194,10 @@ export default function UsuariosTab() {
               pestanaActiva === 'eliminados' ? 'bg-[#003366] shadow-2xs text-white font-bold' : 'text-[#333333] hover:text-[#003366]'
             }`}
           >
-            Papelera / Dados de Baja
+            Papelera
           </button>
         </div>
 
-        {/* Botón "+ Nuevo Usuario" solo visible en activos */}
         {pestanaActiva === 'activos' && (
           <button
             onClick={handleOpenCrear}
@@ -201,7 +226,7 @@ export default function UsuariosTab() {
               <tr>
                 <td colSpan="5" className="py-8 text-center text-[#333333]">
                   {pestanaActiva === 'activos' && 'No hay usuarios activos operando.'}
-                  {pestanaActiva === 'inactivos' && 'No hay usuarios en pausa o vacaciones.'}
+                  {pestanaActiva === 'inactivos' && 'No hay usuarios en pausa.'}
                   {pestanaActiva === 'eliminados' && 'La papelera de exempleados está vacía.'}
                 </td>
               </tr>
@@ -288,6 +313,30 @@ export default function UsuariosTab() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {confirmDialog.mostrar && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl text-center space-y-4">
+            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-xl">⚠️</div>
+            <h3 className="text-lg font-bold text-gray-900">¿Confirmar Acción?</h3>
+            <p className="text-sm text-gray-500">{confirmDialog.mensaje}</p>
+            <div className="flex gap-3 pt-2">
+              <button 
+                onClick={() => setConfirmDialog({ mostrar: false, mensaje: '', accionConfirmar: null })}
+                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-200 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDialog.accionConfirmar}
+                className="flex-1 px-4 py-2.5 text-white rounded-xl text-xs font-bold bg-[#003366] hover:bg-[#002244] cursor-pointer shadow-sm"
+              >
+                Sí, proceder
+              </button>
+            </div>
           </div>
         </div>
       )}
