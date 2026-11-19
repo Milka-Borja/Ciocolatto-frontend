@@ -14,6 +14,10 @@ export default function AnalisisTab() {
   const [cargando, setCargando] = useState(false);
   const [exportando, setExportando] = useState(false);
 
+  // Nuevos estados para exportar productos vendidos
+  const [exportandoProductos, setExportandoProductos] = useState(false);
+  const [agruparPorFecha, setAgruparPorFecha] = useState(false);
+
   useEffect(() => {
     consultarAnaliticas();
   }, [fechaInicio, fechaFin]);
@@ -25,7 +29,6 @@ export default function AnalisisTab() {
       if (fechaInicio) params.fechaInicio = fechaInicio;
       if (fechaFin) params.fechaFin = fechaFin;
 
-      // Según la guía, si no hay fechas, debemos mandar explícitamente ultimosDias = 7 a ventas-diarias
       const paramsVentas = { ...params };
       if (!fechaInicio && !fechaFin) {
         paramsVentas.ultimosDias = 7;
@@ -71,6 +74,40 @@ export default function AnalisisTab() {
       alert("Hubo un error al descargar el reporte Excel.");
     } finally {
       setExportando(false);
+    }
+  };
+
+  // Nueva función para descargar el Excel de productos vendidos (general o por fecha)
+  const handleExportarProductosVendidos = async () => {
+    setExportandoProductos(true);
+    try {
+      const params = {};
+      if (fechaInicio) params.fechaInicio = fechaInicio;
+      if (fechaFin) params.fechaFin = fechaFin;
+      if (agruparPorFecha) params.agruparPorFecha = true;
+
+      const response = await api.get('/reportes/productos-vendidos/excel', {
+        params,
+        responseType: 'blob'
+      });
+
+      const nombreArchivo = agruparPorFecha
+        ? 'reporte_productos_vendidos_por_fecha.xlsx'
+        : 'reporte_productos_vendidos.xlsx';
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', nombreArchivo);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error al exportar productos vendidos:", error);
+      alert("Hubo un error al descargar el reporte Excel de productos.");
+    } finally {
+      setExportandoProductos(false);
     }
   };
 
@@ -153,7 +190,28 @@ export default function AnalisisTab() {
         </div>
 
         <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-2xs">
-          <h3 className="font-bold text-gray-800 mb-6">Top 10 Productos Más Vendidos</h3>
+          <div className="flex flex-wrap justify-between items-center gap-2 mb-6">
+            <h3 className="font-bold text-gray-800">Top 10 Productos Más Vendidos</h3>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-600 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={agruparPorFecha}
+                  onChange={(e) => setAgruparPorFecha(e.target.checked)}
+                  className="w-3.5 h-3.5 accent-[#003366] cursor-pointer"
+                />
+                Agrupar por fecha
+              </label>
+              <button 
+                onClick={handleExportarProductosVendidos}
+                disabled={exportandoProductos || cargando}
+                className="bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-[10px] font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                {exportandoProductos ? 'Descargando...' : '📥 Exportar Excel'}
+              </button>
+            </div>
+          </div>
+
           {cargando ? (
              <div className="h-[280px] flex items-center justify-center text-gray-400 text-sm bg-gray-50 rounded-2xl">Cargando métricas...</div>
           ) : datosTopProductos.length > 0 ? (
