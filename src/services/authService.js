@@ -16,11 +16,10 @@ export const authService = {
   },
 
   // 2.-Registro_Usuarios: POST /auth/registro
-  registro: async ({ nombre, email, password, rol }) => {
+registro: async ({ nombre, email, rol }) => {
     const response = await api.post('/auth/registro', {
       nombre,
       email,
-      password,
       rol,
     });
     return response.data;
@@ -67,6 +66,22 @@ export const authService = {
     } catch {
       return null;
     }
+  },
+  // NUEVO: Actualizar Mi Perfil / Cambiar Contraseña (PUT /auth/mi-perfil)
+  actualizarMiPerfil: async (datos) => {
+    const response = await api.put('/auth/mi-perfil', datos);
+    // Actualizamos el usuario guardado en sessionStorage si cambió el nombre
+    if (response.data) {
+      const actual = authService.getUsuarioActual() || {};
+      sessionStorage.setItem('usuario', JSON.stringify({ ...actual, ...response.data }));
+    }
+    return response.data;
+  },
+
+  // NUEVO: Solicitar Recuperación de Contraseña (POST /auth/olvide-password)
+  olvidePassword: async (email) => {
+    const response = await api.post('/auth/olvide-password', { email });
+    return response.data;
   },
 };
 

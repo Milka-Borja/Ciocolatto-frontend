@@ -1,16 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import VentasView from './views/VentasView';
 import AdminView from './views/admin/AdminView';
 import CocinaView from './views/cocina/CocinaView';
 import LoginView from './views/LoginView';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import MiPerfilModal from './components/common/MiPerfilModal';
 import { authService } from './services/authService';
 
 import imgCono from './assets/cono.jpg';
 
 // Navbar para Ventas / Caja
-function CajeraNavbar() {
+function CajeraNavbar({ onAbrirPerfil }) {
   const navigate = useNavigate();
   const usuario = authService.getUsuarioActual();
 
@@ -39,6 +40,12 @@ function CajeraNavbar() {
           MB
         </div>
         <button
+          onClick={onAbrirPerfil}
+          className="text-xs text-[#4A3B32] bg-[#EAE4DC]/60 hover:bg-[#EAE4DC] px-3 py-1.5 rounded-lg font-bold cursor-pointer transition-colors"
+        >
+          Mi Perfil
+        </button>
+        <button
           onClick={handleLogout}
           className="text-xs text-red-500 hover:text-red-700 font-bold ml-2 cursor-pointer"
         >
@@ -50,7 +57,7 @@ function CajeraNavbar() {
 }
 
 // Navbar para Cocina
-function CocinaNavbar() {
+function CocinaNavbar({ onAbrirPerfil }) {
   const navigate = useNavigate();
   const usuario = authService.getUsuarioActual();
 
@@ -79,6 +86,12 @@ function CocinaNavbar() {
           LC
         </div>
         <button
+          onClick={onAbrirPerfil}
+          className="text-xs text-[#4A3B32] bg-[#EAE4DC]/60 hover:bg-[#EAE4DC] px-3 py-1.5 rounded-lg font-bold cursor-pointer transition-colors"
+        >
+          Mi Perfil
+        </button>
+        <button
           onClick={handleLogout}
           className="text-xs text-red-500 hover:text-red-700 font-bold ml-2 cursor-pointer"
         >
@@ -90,7 +103,7 @@ function CocinaNavbar() {
 }
 
 // Navbar para Administrador
-function AdminNavbar() {
+function AdminNavbar({ onAbrirPerfil }) {
   const navigate = useNavigate();
   const handleLogout = () => {
     authService.logout();
@@ -110,6 +123,12 @@ function AdminNavbar() {
           Panel Administrativo · Control Global
         </span>
         <button
+          onClick={onAbrirPerfil}
+          className="text-xs text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg font-bold cursor-pointer transition-colors"
+        >
+          Mi Perfil
+        </button>
+        <button
           onClick={handleLogout}
           className="text-xs text-red-300 hover:text-white font-bold cursor-pointer"
         >
@@ -124,11 +143,26 @@ function AdminNavbar() {
 function AppNavbar() {
   const location = useLocation();
   const path = location.pathname;
+  const [modalPerfilAbierto, setModalPerfilAbierto] = useState(false);
 
   if (path === '/login') return null;
-  if (path.startsWith('/admin')) return <AdminNavbar />;
-  if (path.startsWith('/cocina')) return <CocinaNavbar />;
-  return <CajeraNavbar />;
+
+  return (
+    <>
+      {path.startsWith('/admin') ? (
+        <AdminNavbar onAbrirPerfil={() => setModalPerfilAbierto(true)} />
+      ) : path.startsWith('/cocina') ? (
+        <CocinaNavbar onAbrirPerfil={() => setModalPerfilAbierto(true)} />
+      ) : (
+        <CajeraNavbar onAbrirPerfil={() => setModalPerfilAbierto(true)} />
+      )}
+
+      <MiPerfilModal
+        isOpen={modalPerfilAbierto}
+        onClose={() => setModalPerfilAbierto(false)}
+      />
+    </>
+  );
 }
 
 export default function App() {
@@ -176,7 +210,7 @@ export default function App() {
         </main>
 
         <footer className="bg-white border-t border-gray-200 py-3 px-6 text-center text-xs text-gray-400 font-montserrat">
-          Ciocolatto System · Trabajo de Integración Curricular
+          Ciocolatto System 
         </footer>
       </div>
     </Router>

@@ -78,8 +78,8 @@ export default function UsuariosTab() {
       setFormError('El nombre debe tener al menos 3 caracteres.');
       return;
     }
-    if (!editingId && formData.password.length < 6) {
-      setFormError('La contraseña debe tener al menos 6 caracteres.');
+    if (editingId && formData.password && formData.password.length < 6) {
+      setFormError('La nueva contraseña debe tener al menos 6 caracteres.');
       return;
     }
 
@@ -98,10 +98,9 @@ export default function UsuariosTab() {
         await authService.registro({
           nombre: formData.nombre.trim(),
           email: formData.email.trim(),
-          password: formData.password,
           rol: formData.rol,
         });
-        mostrarAlerta('¡Usuario registrado exitosamente!');
+        mostrarAlerta('¡Usuario registrado! Se envió una contraseña temporal a su correo.');
       }
 
       await cargarUsuarios();
@@ -292,10 +291,20 @@ export default function UsuariosTab() {
                 <label className="block text-xs font-bold text-[#333333] mb-1">Correo Electrónico</label>
                 <input type="email" name="email" value={formData.email} onChange={handleInputChange} required className="w-full border border-[#F8F9FA] rounded-lg p-2.5 text-xs focus:ring-1 focus:ring-[#003366] outline-none" />
               </div>
-              <div>
-                <label className="block text-xs font-bold text-[#333333] mb-1">{editingId ? 'Nueva Contraseña (opcional)' : 'Contraseña'}</label>
-                <input type="password" name="password" value={formData.password} onChange={handleInputChange} required={!editingId} className="w-full border border-[#F8F9FA] rounded-lg p-2.5 text-xs focus:ring-1 focus:ring-[#003366] outline-none" />
-              </div>
+
+              {!editingId && (
+                <div className="p-2.5 bg-[#F8F9FA] border border-gray-200 rounded-lg text-xs text-[#333333]">
+                  Usa un <strong>correo real</strong>. El sistema enviará automáticamente una contraseña temporal a esa dirección.
+                </div>
+              )}
+
+              {editingId && (
+                <div>
+                  <label className="block text-xs font-bold text-[#333333] mb-1">Nueva Contraseña (opcional)</label>
+                  <input type="password" name="password" value={formData.password} onChange={handleInputChange} className="w-full border border-[#F8F9FA] rounded-lg p-2.5 text-xs focus:ring-1 focus:ring-[#003366] outline-none" />
+                </div>
+              )}
+
               {!editingId && (
                 <div>
                   <label className="block text-xs font-bold text-[#333333] mb-1">Rol Asignado</label>
