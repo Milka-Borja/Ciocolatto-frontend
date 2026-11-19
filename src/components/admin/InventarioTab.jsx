@@ -22,7 +22,7 @@ export default function InventarioTab() {
 
   const [formData, setFormData] = useState({
     nombre: '',
-    categoria: 'Ice cream',
+    categoria: 'helados',
     descripcion: '',
     imagen_url: '',
     precio: '',
@@ -57,7 +57,7 @@ export default function InventarioTab() {
   };
 
   const handleAbrirCrear = () => {
-    setFormData({ nombre: '', categoria: 'Ice cream', descripcion: '', imagen_url: '', precio: '', stock: '', disponible: true, producto_temporada: false });
+    setFormData({ nombre: '', categoria: 'helados', descripcion: '', imagen_url: '', precio: '', stock: '', disponible: true, producto_temporada: false });
     setEditingId(null);
     setModoReactivacion(false);
     setAlertaDuplicado(null);
@@ -69,7 +69,7 @@ export default function InventarioTab() {
   const handleAbrirEditar = (prod) => {
     setFormData({
       nombre: prod.nombre,
-      categoria: prod.categoria || 'Ice cream',
+      categoria: prod.categoria || 'helados',
       descripcion: prod.descripcion || '',
       imagen_url: prod.imagen_url || '',
       precio: prod.precio,
@@ -89,7 +89,7 @@ export default function InventarioTab() {
   const handleAbrirReactivar = (prod) => {
     setFormData({
       nombre: prod.nombre,
-      categoria: prod.categoria || 'Ice cream',
+      categoria: prod.categoria || 'helados',
       descripcion: prod.descripcion || '',
       imagen_url: prod.imagen_url || '',
       precio: prod.precio,
@@ -150,7 +150,7 @@ export default function InventarioTab() {
 
       const payload = {
         nombre: formData.nombre.trim(),
-        categoria: formData.categoria,
+        categoria: formData.categoria.toLowerCase(),
         descripcion: formData.descripcion.trim(),
         imagen_url: finalImageUrl || 'https://ciocolatto.com/imagenes/helado.png',
         precio: parseFloat(formData.precio),
@@ -171,9 +171,10 @@ export default function InventarioTab() {
       setImagenFile(null);
       cargarDatos();
     } catch (error) {
-      setFormError(error.message || 'Error al procesar la solicitud en el servidor.');
-      console.error(error);
-    } finally {
+      const msg = error.response?.data?.error || error.response?.data?.mensaje || error.message;
+      setFormError(msg || 'Error al procesar la solicitud en el servidor.');
+      console.error('Respuesta del backend:', error.response?.data || error);
+    }finally {
       setSubiendoImagen(false);
     }
   };
@@ -314,10 +315,8 @@ export default function InventarioTab() {
                   <div>
                     <label className="block text-xs font-bold text-[#333333] mb-1">Categoría</label>
                     <select name="categoria" value={formData.categoria} onChange={handleInputChange} className="w-full border border-gray-200 rounded-lg p-2.5 text-xs outline-none focus:border-[#003366] bg-white cursor-pointer">
-                      <option value="Ice cream">Ice cream</option>
-                      <option value="Frutas">Frutas</option>
-                      <option value="Bebidas">Bebidas</option>
-                      <option value="Postres">Postres</option>
+                      <option value="helados">Helados</option>
+                      <option value="postres">Postres</option>
                     </select>
                   </div>
                 </div>

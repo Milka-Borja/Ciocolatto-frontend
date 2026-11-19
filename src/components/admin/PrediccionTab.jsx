@@ -178,14 +178,14 @@ export default function PrediccionTab() {
                       type="monotone" 
                       dataKey="maximo" 
                       stroke="none" 
-                      fill="#E0E7FF" 
+                      fill="#5c7ce7" 
                       name="Rango Máximo (80%)" 
                     />
                     <Area 
                       type="monotone" 
                       dataKey="minimo" 
                       stroke="none" 
-                      fill="#FFFFFF" 
+                      fill="#aa83e9" 
                       name="Rango Mínimo" 
                     />
                     
