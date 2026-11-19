@@ -160,7 +160,7 @@ export default function AnalisisTab() {
               disabled={exportando || cargando}
               className="bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-[10px] font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50 cursor-pointer"
             >
-              {exportando ? 'Descargando...' : '📥 Exportar Excel'}
+              {exportando ? 'Descargando...' : 'Exportar Excel'}
             </button>
           </div>
           
@@ -207,7 +207,7 @@ export default function AnalisisTab() {
                 disabled={exportandoProductos || cargando}
                 className="bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-[10px] font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50 cursor-pointer"
               >
-                {exportandoProductos ? 'Descargando...' : '📥 Exportar Excel'}
+                {exportandoProductos ? 'Descargando...' : ' Exportar Excel'}
               </button>
             </div>
           </div>
