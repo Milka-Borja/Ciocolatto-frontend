@@ -1,61 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
-import ProductCard from '../components/ventas/ProductCard';
 import { productoService } from '../services/productoService';
 import { pedidoService } from '../services/pedidoService';
 import { ticketService } from '../services/ticketService';
 import { authService } from '../services/authService';
 import imgLupa from '../assets/lupa.png';
 
-// Host dinámico del socket para desarrollo o producción en Azure
+// Componentes modulares
+import OrderProgressBar from '../components/ventas/OrderProgressBar';
+import CategoryFilter from '../components/ventas/CategoryFilter';
+import ProductGrid from '../components/ventas/ProductGrid';
+import OrderSidebar from '../components/ventas/OrderSidebar';
+import RecentOrdersModal from '../components/ventas/RecentOrdersModal';
+
+
 const socketHost =
   (import.meta.env.VITE_API_URL || '').replace(/\/api\/?$/, '') || window.location.origin;
-
-// Barra visual de progreso para los 3 estados del pedido
-function OrderProgressBar({ estado }) {
-  const raw = (estado || 'pendiente')
-    .toLowerCase()
-    .replace('ó', 'o')
-    .replace(' ', '_')
-    .trim();
-
-  let pasoActivo = 1;
-  let colorFondo = 'bg-amber-500';
-  let anchoBarra = '33%';
-
-  if (raw === 'en_preparacion' || raw.includes('preparaci')) {
-    pasoActivo = 2;
-    colorFondo = 'bg-blue-600';
-    anchoBarra = '66%';
-  } else if (raw === 'listo' || raw === 'entregado' || raw.includes('list')) {
-    pasoActivo = 3;
-    colorFondo = 'bg-emerald-600';
-    anchoBarra = '100%';
-  }
-
-  return (
-    <div className="w-full space-y-1.5 py-1">
-      <div className="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden relative">
-        <div
-          className={`h-full transition-all duration-700 ease-out rounded-full ${colorFondo}`}
-          style={{ width: anchoBarra }}
-        ></div>
-      </div>
-
-      <div className="flex justify-between text-[11px] font-bold">
-        <span className={pasoActivo >= 1 ? 'text-amber-700 font-extrabold' : 'text-gray-400'}>
-          ● Pendiente
-        </span>
-        <span className={pasoActivo >= 2 ? 'text-blue-700 font-extrabold' : 'text-gray-400'}>
-          ● En preparación
-        </span>
-        <span className={pasoActivo >= 3 ? 'text-emerald-700 font-extrabold' : 'text-gray-400'}>
-          ● Listo
-        </span>
-      </div>
-    </div>
-  );
-}
 
 export default function VentasView() {
   const [productsData, setProductsData] = useState([]);
@@ -84,8 +44,8 @@ export default function VentasView() {
   const fetchProductos = async () => {
     setCargando(true);
     try {
-      const data = productoService.obtenerTodos 
-        ? await productoService.obtenerTodos() 
+      const data = productoService.obtenerTodos
+        ? await productoService.obtenerTodos()
         : await productoService.obtenerActivos();
       setProductsData(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -111,15 +71,15 @@ export default function VentasView() {
     });
 
     socket.on('connect', () => {
-      console.log('✅ Socket conectado en Caja/Ventas con ID:', socket.id);
+      console.log(' Socket conectado en Caja/Ventas con ID:', socket.id);
     });
 
     socket.on('connect_error', (err) => {
-      console.warn('⚠️ Error de conexión Socket en Ventas:', err.message);
+      console.warn(' Error de conexión Socket en Ventas:', err.message);
     });
 
     socket.on('ticket_actualizado', (data) => {
-      console.log('📩 [Caja] Evento ticket_actualizado recibido:', data);
+      console.log(' [Caja] Evento ticket_actualizado recibido:', data);
 
       if (!data) return;
 
@@ -156,20 +116,18 @@ export default function VentasView() {
     };
   }, []);
 
-  // 3. NUEVA LÓGICA: Recargo automático de $0.50 al seleccionar "Para llevar"
+  // 3. Recargo automático de $0.50 al seleccionar "Para llevar"
   const handleOrderTypeChange = (type) => {
     setOrderType(type);
     if (type === "para-llevar") {
-      // Añadir el recargo de empaque si no está agregado
-      if (!extrasList.find(e => e.id === 'empaque-llevar')) {
-        setExtrasList(prev => [
-          ...prev, 
+      if (!extrasList.find((e) => e.id === 'empaque-llevar')) {
+        setExtrasList((prev) => [
+          ...prev,
           { id: 'empaque-llevar', nombre: 'Tarrina / Empaque (Para llevar)', precio: 0.50 }
         ]);
       }
     } else {
-      // Retirar el recargo si cambia a comer aquí
-      setExtrasList(prev => prev.filter(e => e.id !== 'empaque-llevar'));
+      setExtrasList((prev) => prev.filter((e) => e.id !== 'empaque-llevar'));
     }
   };
 
@@ -291,10 +249,10 @@ export default function VentasView() {
       alert("La orden está vacía. Añade al menos un producto.");
       return;
     }
-    
+
     setEnviando(true);
     const tieneExtras = extrasList.length > 0;
-    
+
     const payload = {
       items: cart.map((item) => ({
         producto_id: item.producto_id || item.id,
@@ -310,7 +268,7 @@ export default function VentasView() {
 
     try {
       const response = await pedidoService.crearPedido(payload);
-      
+
       const pedidoGuardado = {
         id: response.id,
         estado: 'pendiente',
@@ -318,13 +276,12 @@ export default function VentasView() {
         tipo: orderType,
         itemsCount: totalItems,
       };
-      
+
       setUltimoPedido(pedidoGuardado);
       setCart([]);
       setExtrasList([]);
       setKitchenNote('');
-      setOrderType('comer-aqui'); // Restablecer a comer aquí tras enviar
-      
+      setOrderType('comer-aqui');
     } catch (error) {
       console.error('Error al registrar pedido:', error.response?.data);
       alert('Error al conectar con la API de pedidos.');
@@ -378,7 +335,6 @@ export default function VentasView() {
         );
         return ticketDelUltimo ? { ...prev, estado: ticketDelUltimo.estado } : prev;
       });
-
     } catch (error) {
       console.error('Error al sincronizar historial y estado de pedidos:', error);
     } finally {
@@ -395,15 +351,15 @@ export default function VentasView() {
             <h1 className="text-3xl font-bold text-gray-950">Ventas</h1>
             <p className="text-gray-500 text-sm mt-1">Crea una orden y mándala directo a la cocina.</p>
           </div>
-          <button 
+          <button
             onClick={handleAbrirOrdenesRecientes}
             className="flex items-center space-x-2 bg-white border border-gray-200 px-4 py-2 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-2xs cursor-pointer"
           >
-            <span>📄 Órdenes Recientes</span>
+            <span> Órdenes Recientes</span>
           </button>
         </div>
 
-        {/* MONITOR EN VIVO DE LA ÚLTIMA ORDEN ENVIADA */}
+        {/* Monitor en vivo de la última orden enviada */}
         {ultimoPedido && (
           <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-2xs space-y-2">
             <div className="flex justify-between items-center text-xs">
@@ -438,318 +394,55 @@ export default function VentasView() {
           />
         </div>
 
-        {/* Filtros de Categorías */}
-        <div className="flex space-x-3 overflow-x-auto pb-2">
-          {["Todos", "Helados", "Postres", "Temporada"].map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer capitalize ${
-                selectedCategory.toLowerCase() === cat.toLowerCase()
-                  ? "bg-[#5C4033] text-white shadow-sm"
-                  : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
-              }`}
-            >
-              {cat === "Temporada" ? " Temporada" : cat}
-            </button>
-          ))}
-        </div>
+        <CategoryFilter
+          categories={["Todos", "Helados", "Postres", "Temporada"]}
+          selectedCategory={selectedCategory}
+          onSelectCategory={setSelectedCategory}
+        />
 
-        {/* Retícula de Productos */}
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-semibold text-gray-800">Menú</h3>
-            <span className="text-xs text-gray-400 font-medium">
-              {cargando ? 'Cargando...' : `${filteredProducts.length} productos disponibles`}
-            </span>
-          </div>
-
-          {cargando ? (
-            <div className="p-16 text-center text-gray-400 text-sm">
-              Cargando catálogo desde la base de datos...
-            </div>
-          ) : filteredProducts.length === 0 ? (
-            <div className="p-16 text-center text-gray-400 text-sm bg-white border border-gray-200 rounded-2xl">
-              No hay productos que coincidan con la búsqueda.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-              {filteredProducts.map((prod) => (
-                <ProductCard 
-                  key={prod.id} 
-                  product={prod} 
-                  onAddToCart={handleAddToCart} 
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        <ProductGrid
+          cargando={cargando}
+          products={filteredProducts}
+          onAddToCart={handleAddToCart}
+        />
       </div>
 
       {/* Columna Derecha: Orden Actual / Carrito */}
-      <div className="lg:col-span-4 bg-white border border-gray-200 rounded-3xl p-6 flex flex-col justify-between shadow-2xs">
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Orden Actual</h2>
-            <span className="text-xs font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-lg">
-              {tipoPago}
-            </span>
-          </div>
-
-          {/* Selector de consumo (Conectado a la regla del recargo de $0.50) */}
-          <div className="grid grid-cols-2 bg-gray-100 p-1 rounded-xl mb-4">
-            <button
-              onClick={() => handleOrderTypeChange("comer-aqui")}
-              className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                orderType === "comer-aqui" ? "bg-white text-gray-900 shadow-2xs" : "text-gray-500 hover:text-gray-800"
-              }`}
-            >
-              Comer aquí
-            </button>
-            <button
-              onClick={() => handleOrderTypeChange("para-llevar")}
-              className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                orderType === "para-llevar" ? "bg-white text-gray-900 shadow-2xs" : "text-gray-500 hover:text-gray-800"
-              }`}
-            >
-              Para llevar (+ $0.50)
-            </button>
-          </div>
-
-          {/* Selector de Método de Pago */}
-          <div className="mb-4">
-            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-              Método de Pago
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {['Efectivo', 'Transferencia', 'Tarjeta'].map((metodo) => (
-                <button
-                  key={metodo}
-                  type="button"
-                  onClick={() => setTipoPago(metodo)}
-                  className={`py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
-                    tipoPago === metodo
-                      ? 'bg-[#5C4033] text-white border-[#5C4033]'
-                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  {metodo}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <p className="text-xs text-gray-400 font-medium mb-3">{cart.length} productos - {totalItems} ítems</p>
-
-          {/* Lista de productos en el carrito */}
-          <div className="space-y-3 max-h-[230px] overflow-y-auto pr-1">
-            {cart.length === 0 ? (
-              <div className="text-center py-6 text-gray-400 text-xs">
-                Selecciona productos del menú para armar la orden.
-              </div>
-            ) : (
-              cart.map((item) => (
-                <div key={item.producto_id} className="p-3 bg-gray-50 border border-gray-100 rounded-2xl relative group">
-                  <button
-                    onClick={() => handleRemoveItem(item.producto_id)}
-                    className="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-sm font-bold cursor-pointer"
-                  >
-                    ×
-                  </button>
-                  <h4 className="font-bold text-sm text-gray-900 pr-6">{item.nombre}</h4>
-                  <p className="text-[11px] text-gray-500 mb-2">{item.descripcion}</p>
-
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="flex items-center space-x-2 bg-white border border-gray-200 rounded-lg px-2 py-1 shadow-3xs">
-                      <button onClick={() => handleUpdateQty(item.producto_id, -1)} className="text-gray-500 hover:text-black font-bold px-1 cursor-pointer">−</button>
-                      <span className="text-xs font-bold text-gray-800 w-4 text-center">{item.cantidad}</span>
-                      <button onClick={() => handleUpdateQty(item.producto_id, 1)} className="text-gray-500 hover:text-black font-bold px-1 cursor-pointer">+</button>
-                    </div>
-                    <span className="font-bold text-sm text-gray-900">${(item.precio * item.cantidad).toFixed(2)}</span>
-                  </div>
-
-                  <input
-                    type="text"
-                    placeholder="Instrucción específica (ej. en cono)"
-                    value={item.notas}
-                    onChange={(e) => handleUpdateItemNote(item.producto_id, e.target.value)}
-                    className="w-full text-[11px] bg-white border border-gray-200 rounded-lg px-2 py-1 outline-none focus:border-gray-400"
-                  />
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Extras Opcionales */}
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-[11px] font-bold text-gray-600 uppercase tracking-wider">
-                Adicionales / Extras
-              </span>
-              <button
-                type="button"
-                onClick={() => setMostrarFormExtra(!mostrarFormExtra)}
-                className="text-xs font-bold text-[#5C4033] hover:underline cursor-pointer"
-              >
-                {mostrarFormExtra ? '✕ Cerrar' : '+ Agregar Extra'}
-              </button>
-            </div>
-
-            {mostrarFormExtra && (
-              <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-200 space-y-2 mb-2">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Ej. Extra queso, cono waffle"
-                    value={nuevoExtraNombre}
-                    onChange={(e) => setNuevoExtraNombre(e.target.value)}
-                    className="flex-1 text-xs bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-gray-800"
-                  />
-                  <input
-                    type="number"
-                    step="0.05"
-                    placeholder="$0.50"
-                    value={nuevoExtraPrecio}
-                    onChange={(e) => setNuevoExtraPrecio(e.target.value)}
-                    className="w-20 text-xs bg-white border border-gray-300 rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-gray-800"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={handleAgregarExtra}
-                  className="w-full bg-[#5C4033] text-white text-xs font-bold py-1.5 rounded-lg hover:bg-[#4A3B32] transition-colors cursor-pointer"
-                >
-                  Confirmar Adicional
-                </button>
-              </div>
-            )}
-
-            {extrasList.length > 0 && (
-              <div className="space-y-1.5 max-h-[100px] overflow-y-auto">
-                {extrasList.map((extra) => (
-                  <div
-                    key={extra.id}
-                    className="flex justify-between items-center text-xs bg-amber-50/70 border border-amber-200/80 px-2.5 py-1 rounded-lg"
-                  >
-                    <span className="text-amber-950 font-medium"> {extra.nombre}</span>
-                    <div className="flex items-center space-x-2">
-                      <span className="font-bold text-amber-900">+${extra.precio.toFixed(2)}</span>
-                      {extra.id !== 'empaque-llevar' && (
-                        <button
-                          type="button"
-                          onClick={() => handleEliminarExtra(extra.id)}
-                          className="text-gray-400 hover:text-red-500 font-bold ml-1 cursor-pointer"
-                        >
-                          ×
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Nota general de la comanda */}
-          <div className="mt-3">
-            <input
-              type="text"
-              placeholder="📝 Nota general (ej. Cliente en mesa 4)"
-              value={kitchenNote}
-              onChange={(e) => setKitchenNote(e.target.value)}
-              className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 px-3 py-2.5 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#5C4033] font-montserrat"
-            />
-          </div>
-        </div>
-
-        {/* Resumen de Totales y Envío */}
-        <div className="pt-4 border-t border-gray-100 mt-4 space-y-2">
-          <div className="flex justify-between text-xs text-gray-500">
-            <span>Subtotal productos</span>
-            <span className="font-medium text-gray-800">${subtotalProductos.toFixed(2)}</span>
-          </div>
-
-          {totalExtras > 0 && (
-            <div className="flex justify-between text-xs text-amber-800 font-medium">
-              <span>Extras ({extrasList.length})</span>
-              <span className="font-bold">+${totalExtras.toFixed(2)}</span>
-            </div>
-          )}
-
-          <div className="flex justify-between text-lg font-bold text-gray-900 pt-1 border-t border-gray-100">
-            <span>Total</span>
-            <span className="text-xl text-[#5C4033]">${totalGeneral.toFixed(2)}</span>
-          </div>
-
-          <button
-            onClick={handleSendToKitchen}
-            disabled={enviando}
-            className="w-full bg-[#4A3B32] hover:bg-[#382c25] text-white py-3.5 rounded-2xl font-bold text-sm shadow-md transition-colors cursor-pointer disabled:opacity-50 mt-1"
-          >
-            {enviando ? 'Registrando en Servidor...' : 'Confirmar y enviar a la cocina'}
-          </button>
-        </div>
-      </div>
+      <OrderSidebar
+        tipoPago={tipoPago}
+        setTipoPago={setTipoPago}
+        orderType={orderType}
+        onOrderTypeChange={handleOrderTypeChange}
+        cart={cart}
+        totalItems={totalItems}
+        onRemoveItem={handleRemoveItem}
+        onUpdateQty={handleUpdateQty}
+        onUpdateItemNote={handleUpdateItemNote}
+        extrasList={extrasList}
+        mostrarFormExtra={mostrarFormExtra}
+        setMostrarFormExtra={setMostrarFormExtra}
+        nuevoExtraNombre={nuevoExtraNombre}
+        setNuevoExtraNombre={setNuevoExtraNombre}
+        nuevoExtraPrecio={nuevoExtraPrecio}
+        setNuevoExtraPrecio={setNuevoExtraPrecio}
+        onAgregarExtra={handleAgregarExtra}
+        onEliminarExtra={handleEliminarExtra}
+        kitchenNote={kitchenNote}
+        setKitchenNote={setKitchenNote}
+        subtotalProductos={subtotalProductos}
+        totalExtras={totalExtras}
+        totalGeneral={totalGeneral}
+        enviando={enviando}
+        onSendToKitchen={handleSendToKitchen}
+      />
 
       {/* Modal de Historial de Órdenes */}
-      {modalOrdenesOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl p-6 shadow-xl border border-gray-200 space-y-4">
-            <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-              <h3 className="text-lg font-bold text-gray-900">Historial y Estado de Órdenes</h3>
-              <button
-                onClick={() => setModalOrdenesOpen(false)}
-                className="text-gray-400 hover:text-gray-700 text-lg font-bold cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="max-h-[440px] overflow-y-auto space-y-3">
-              {cargandoOrdenes ? (
-                <p className="text-center py-6 text-gray-400 text-sm">Consultando pedidos...</p>
-              ) : ordenesRecientes.length === 0 ? (
-                <p className="text-center py-6 text-gray-400 text-sm">No se encontraron pedidos recientes registrados.</p>
-              ) : (
-                ordenesRecientes.map((ped) => (
-                  <div key={ped.id} className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-3">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-gray-900">Pedido #{ped.id}</span>
-                      <span className="text-gray-500 font-mono">
-                        {ped.fecha_creacion
-                          ? new Date(ped.fecha_creacion).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                          : ''}
-                      </span>
-                    </div>
-
-                    <OrderProgressBar estado={ped.estado} />
-
-                    <div className="text-xs text-gray-600">
-                      {ped.lineas?.map((l) => (
-                        <div key={l.id} className="flex justify-between">
-                          <span>{l.cantidad}x {l.nombre_producto} {l.notas ? `(${l.notas})` : ''}</span>
-                          <span className="font-mono">${Number(l.subtotal).toFixed(2)}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {ped.total_extras > 0 && (
-                      <div className="text-[11px] text-amber-700 font-medium">
-                        Adicionales: {ped.descripcion_extras} (+${Number(ped.total_extras).toFixed(2)})
-                      </div>
-                    )}
-
-                    <div className="flex justify-between items-center pt-2 border-t border-gray-200 text-xs font-bold">
-                      <span className="text-gray-600">Pago: {ped.tipo_pago}</span>
-                      <span className="text-[#5C4033] text-sm">${Number(ped.total).toFixed(2)}</span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <RecentOrdersModal
+        isOpen={modalOrdenesOpen}
+        onClose={() => setModalOrdenesOpen(false)}
+        cargandoOrdenes={cargandoOrdenes}
+        ordenesRecientes={ordenesRecientes}
+      />
     </div>
   );
 }
